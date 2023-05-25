@@ -1,0 +1,59 @@
+version: "3.8"
+services:
+  app:
+    build:
+      args:
+        user: efx
+        uid: 1000
+      context: ./api
+      dockerfile: Dockerfile
+    image: cus-app-img
+    container_name: cus-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./api:/var/www
+    networks:
+      - development
+  db:
+    image: mysql:8.0
+    container_name: cus-db
+    restart: unless-stopped
+    ports:
+      - "3306"
+    environment:
+      MYSQL_DATABASE: cusdb
+      MYSQL_ROOT_PASSWORD: ttpass
+    networks:
+      - development
+  nginx:
+    image: nginx:alpine
+    container_name: cus-nginx
+    restart: unless-stopped
+    ports:
+      - 9999:80
+    volumes:
+      - ./api:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    depends_on:
+      - app
+    networks:
+      - development
+  frontend:
+    container_name: cus-frontend
+    image: cus-frontend-img
+    restart: unless-stopped
+    build:
+      context: frontend-app
+      target: development
+    ports:
+      - 3000:3000
+    volumes:
+      - /app/node_modules
+    networks:
+      - development
+    depends_on:
+      - nginx
+networks:
+  development:
+    driver: bridge
